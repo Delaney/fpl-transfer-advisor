@@ -42,14 +42,100 @@ function findBestTransfer(userTeam: FPLTeam, allPlayers: Player[], budget: numbe
     return transfers;
 }
 
+export async function findBestTransfers(
+    userTeam: FPLTeam,
+    allPlayers: Player[],
+    budget: number,
+    freeTransfers: number,
+): Promise<TransferSuggestion[]> {
+    if (freeTransfers === 0) {
+        console.log("No free transfers available.");
+        return [];
+    }
+
+    const underperformingPlayers = userTeam.picks
+        .map((pick) => {
+            const player = allPlayers.find(p => p.id === pick.element);
+            if (!player) return null;
+            return {
+                player,
+                performanceScore: evaluatePlayerPerformance(player),
+            };
+        })
+        .filter((entry) => entry !== null)
+        .sort((a, b) => a!.performanceScore - b!.performanceScore) // Sort by lowest performance
+        .slice(0, freeTransfers);
+
+    // Generate transfer recommendations
+    const transferSuggestions: TransferSuggestion[] = [];
+
+    for (const entry of underperformingPlayers) {
+        const { player } = entry!;
+        const possibleReplacements = getPotentialReplacements(player, allPlayers, userTeam);
+
+        if (possibleReplacements.length > 0) {
+            // Select the best possible replacement
+            const bestReplacement = possibleReplacements[0];
+
+            if (budget + player.now_cost >= bestReplacement.now_cost) {
+                transferSuggestions.push({
+                    out: player.web_name,
+                    in: bestReplacement.web_name,
+                    cost: bestReplacement.now_cost - player.now_cost,
+                });
+                budget -= bestReplacement.now_cost - player.now_cost;
+            }
+        }
+    }
+
+    return transferSuggestions;
+}
+
 /**
  * Main function to analyze a team and return transfer recommendations.
  */
-export async function analyseTeam(teamId: number, cookie: string) {
+export async function analyseTeam(teamId: number, cookie: string, single: boolean = true) {
     const { players, positions } = await getFPLData();
     const userTeam = await getUserTeam(teamId, cookie);
 
     const budget = userTeam.transfers.bank / 10;
     const freeTransfers = userTeam.transfers.limit;
-    return findBestTransfer(userTeam, players, budget);
+    return single ?
+        findBestTransfer(userTeam, players, budget) :
+        findBestTransfers(userTeam, players, budget, freeTransfers);
+}
+
+function evaluatePlayerPerformance(player: Player): number {
+    const { total_points, form, now_cost, minutes } = player;
+
+    // Normalize key metrics
+    const formScore = parseFloat(form) * 10; // Convert string form to number and scale
+    const valueForMoney = total_points / (now_cost / 10); // Points per million cost
+    const playtimeFactor = minutes > 500 ? 1 : 0.5; // Discount if less than 500 mins played
+
+    // Weighted scoring system
+    return (total_points * 2 + formScore + valueForMoney * 5) * playtimeFactor;
+}
+
+function getPotentialReplacements(playerOut: Player, allPlayers: Player[], userTeam: FPLTeam): Player[] {
+    const budgetAvailable = userTeam.transfers.bank + playerOut.now_cost;
+    const positionId = playerOut.element_type;
+
+    const clubCounts: Record<number, number> = {};
+    userTeam.picks.forEach(pick => {
+        const player = allPlayers.find(p => p.id === pick.element);
+        if (player) {
+            clubCounts[player.team] = (clubCounts[player.team] || 0) + 1;
+        }
+    });
+
+    const candidates = allPlayers.filter(p =>
+        p.element_type === positionId &&
+        p.now_cost <= budgetAvailable &&
+        evaluatePlayerPerformance(p) > evaluatePlayerPerformance(playerOut) &&
+        (clubCounts[p.team] ?? 0) < 3
+    );
+
+    // Sort candidates by best performance
+    return candidates.sort((a, b) => evaluatePlayerPerformance(b) - evaluatePlayerPerformance(a));
 }

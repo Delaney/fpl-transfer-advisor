@@ -15,6 +15,7 @@ export interface Player {
     form: string;
     status: string;
     expected_goals_conceded: string;
+    minutes: number;
 }
 
 export interface Position {

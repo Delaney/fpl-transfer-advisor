@@ -22,7 +22,7 @@ app.post('/team', async (req, res, next) => {
     }
 });
 
-app.post('/simple-analysis', async (req, res, next) => {
+app.post('/simple-analysis-single', async (req, res, next) => {
     const { teamId, cookie } = req.body;
 
     if (!teamId || !cookie) {
@@ -31,6 +31,21 @@ app.post('/simple-analysis', async (req, res, next) => {
 
     try {
         const team = await analyseTeam(teamId, cookie);
+        res.json(team);
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.post('/simple-analysis-multiple', async (req, res, next) => {
+    const { teamId, cookie } = req.body;
+
+    if (!teamId || !cookie) {
+        res.status(400).json({error: "Team ID or cookie is invalid"});
+    }
+
+    try {
+        const team = await analyseTeam(teamId, cookie, false);
         res.json(team);
     } catch (error) {
         next(error);
