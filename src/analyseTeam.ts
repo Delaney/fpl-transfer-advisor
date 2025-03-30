@@ -60,17 +60,17 @@ export async function findBestTransfers(
         attempts++;
 
         const underperformingPlayers = userTeam.picks
-        .map((pick) => {
-            const player = allPlayers.find(p => p.id === pick.element);
-            if (!player) return null;
-            return {
-                player,
-                performanceScore: evaluatePlayerPerformance(player),
-            };
-        })
-        .filter((entry) => entry !== null)
-        .sort((a, b) => a!.performanceScore - b!.performanceScore)
-        .slice(0, freeTransfers);
+            .map((pick) => {
+                const player = allPlayers.find(p => p.id === pick.element);
+                if (!player) return null;
+                return {
+                    player,
+                    performanceScore: evaluatePlayerPerformance(player),
+                };
+            })
+            .filter((entry) => entry !== null)
+            .sort((a, b) => a!.performanceScore - b!.performanceScore)
+            .slice(0, freeTransfers);
 
         let foundValidTransfer = false;
 
@@ -78,22 +78,29 @@ export async function findBestTransfers(
             const { player } = entry!;
             const possibleReplacements = getPotentialReplacements(player, allPlayers, userTeam);
 
+            console.log(player.web_name, budget);
+
             if (possibleReplacements.length > 0) {
-                const bestReplacement = possibleReplacements[0];
+                let replaced = false;
 
-                if (budget + player.now_cost >= bestReplacement.now_cost) {
-                    transferSuggestions.push({
-                        out: player.web_name,
-                        in: bestReplacement.web_name,
-                        cost: bestReplacement.now_cost - player.now_cost,
-                    });
+                for (const replacement of possibleReplacements) {
+                    if (budget + player.now_cost >= replacement.now_cost) {
+                        transferSuggestions.push({
+                            out: player.web_name,
+                            in: replacement.web_name,
+                            cost: replacement.now_cost - player.now_cost,
+                        });
 
-                    budget -= bestReplacement.now_cost - player.now_cost;
-                    foundValidTransfer = true;
+                        budget -= replacement.now_cost - player.now_cost;
+                        foundValidTransfer = true;
+                        replaced = true;
 
-                    userTeam.picks = userTeam.picks.map(p =>
-                        p.element === player.id ? { ...p, element: bestReplacement.id } : p
-                    );
+                        userTeam.picks = userTeam.picks.map(p =>
+                            p.element === player.id ? { ...p, element: replacement.id } : p
+                        );
+
+                        break;
+                    }
                 }
             }
         }
