@@ -29,7 +29,11 @@ export interface Position {
 }
 
 export interface FPLTeam {
-    picks: { element: number }[];
+    picks: {
+        element: number,
+        element_type: number;
+        name?: string;
+    }[];
     transfers: { bank: number };
 }
 

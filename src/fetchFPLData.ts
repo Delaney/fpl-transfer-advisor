@@ -18,6 +18,8 @@ export async function getFPLData(): Promise<{
 }
 
 export async function getUserTeam(teamId: number, userCookie: string): Promise<FPLTeam> {
+    const players = (await getFPLData()).players;
+
     const response = await fetch(`${FPL_BASE_URL}/my-team/${teamId}`, {
         headers: {
             'cookie': userCookie,
@@ -28,5 +30,12 @@ export async function getUserTeam(teamId: number, userCookie: string): Promise<F
         throw new Error("Failed to fetch user's FPL team");
     }
 
-    return await response.json() as FPLTeam;
+    const team = await response.json() as FPLTeam;
+
+    team.picks = team.picks.map(player => {
+        player.name = players.find(o => o.id === player.element)?.web_name;
+        return player;
+    });
+
+    return team;
 }
