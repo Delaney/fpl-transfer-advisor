@@ -78,8 +78,6 @@ export async function findBestTransfers(
             const { player } = entry!;
             const possibleReplacements = getPotentialReplacements(player, allPlayers, userTeam);
 
-            console.log(player.web_name, budget);
-
             if (possibleReplacements.length > 0) {
                 let replaced = false;
 
