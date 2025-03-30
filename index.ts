@@ -1,4 +1,5 @@
 import app from './src/app';
+import config from './src/config';
 import express from "express";
 
 init();
@@ -14,8 +15,8 @@ async function init() {
         res.status(500).json({ error: 'Something went wrong!' });
     });
 
-    app.listen(3001, () => {
-        console.log('Express App Listening on Port 3001');
+    app.listen(config.port, () => {
+        console.log('Express App Listening on port ' + config.port);
     });
 
     process.on('uncaughtException', (err) => {
