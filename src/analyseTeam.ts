@@ -53,7 +53,13 @@ export async function findBestTransfers(
         return [];
     }
 
-    const underperformingPlayers = userTeam.picks
+    const transferSuggestions: TransferSuggestion[] = [];
+    let attempts = 0;
+
+    while (freeTransfers > 0 && attempts < 5) {
+        attempts++;
+
+        const underperformingPlayers = userTeam.picks
         .map((pick) => {
             const player = allPlayers.find(p => p.id === pick.element);
             if (!player) return null;
@@ -63,29 +69,36 @@ export async function findBestTransfers(
             };
         })
         .filter((entry) => entry !== null)
-        .sort((a, b) => a!.performanceScore - b!.performanceScore) // Sort by lowest performance
+        .sort((a, b) => a!.performanceScore - b!.performanceScore)
         .slice(0, freeTransfers);
 
-    // Generate transfer recommendations
-    const transferSuggestions: TransferSuggestion[] = [];
+        let foundValidTransfer = false;
 
-    for (const entry of underperformingPlayers) {
-        const { player } = entry!;
-        const possibleReplacements = getPotentialReplacements(player, allPlayers, userTeam);
+        for (const entry of underperformingPlayers) {
+            const { player } = entry!;
+            const possibleReplacements = getPotentialReplacements(player, allPlayers, userTeam);
 
-        if (possibleReplacements.length > 0) {
-            // Select the best possible replacement
-            const bestReplacement = possibleReplacements[0];
+            if (possibleReplacements.length > 0) {
+                const bestReplacement = possibleReplacements[0];
 
-            if (budget + player.now_cost >= bestReplacement.now_cost) {
-                transferSuggestions.push({
-                    out: player.web_name,
-                    in: bestReplacement.web_name,
-                    cost: bestReplacement.now_cost - player.now_cost,
-                });
-                budget -= bestReplacement.now_cost - player.now_cost;
+                if (budget + player.now_cost >= bestReplacement.now_cost) {
+                    transferSuggestions.push({
+                        out: player.web_name,
+                        in: bestReplacement.web_name,
+                        cost: bestReplacement.now_cost - player.now_cost,
+                    });
+
+                    budget -= bestReplacement.now_cost - player.now_cost;
+                    foundValidTransfer = true;
+
+                    userTeam.picks = userTeam.picks.map(p =>
+                        p.element === player.id ? { ...p, element: bestReplacement.id } : p
+                    );
+                }
             }
         }
+
+        if (!foundValidTransfer) break;
     }
 
     return transferSuggestions;
