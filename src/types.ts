@@ -34,7 +34,10 @@ export interface FPLTeam {
         element_type: number;
         name?: string;
     }[];
-    transfers: { bank: number };
+    transfers: {
+        bank: number;
+        limit: number;
+    };
 }
 
 export interface PLTeam {
