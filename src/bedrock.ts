@@ -1,6 +1,6 @@
 import {BedrockRuntimeClient, InvokeModelCommand} from "@aws-sdk/client-bedrock-runtime";
 import config from './config';
-import {getRecommendationData, getTopTransferRecommendations} from "./dynamo";
+import {getRecommendationData} from "./dynamo";
 
 const client = new BedrockRuntimeClient({
     region: config.awsRegion,
@@ -14,26 +14,28 @@ export async function invokeBedrock(modelId: string, prompt: string) {
     const command = new InvokeModelCommand({
         modelId,
         body: JSON.stringify({
-            inputText: prompt,
-            textGenerationConfig: {
-                maxTokenCount: 1000,
-                temperature: 0.7,
-                topP: 1
-            }
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 1000,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": prompt
+                        }
+                    ]
+                }
+            ]
         }),
         contentType: "application/json",
         accept: "application/json"
     });
 
     const response = await client.send(command);
-    const {results} = JSON.parse(Buffer.from(response.body).toString()) ?? [];
+    const results = JSON.parse(Buffer.from(response.body).toString()) ?? [];
 
-    const output = results[0]?.outputText;
-
-    return output.replaceAll('Position: 1', 'Goalkeeper')
-        .replaceAll('Position: 2', 'Defender')
-        .replaceAll('Position: 3', 'Midfielder')
-        .replaceAll('Position: 4', 'Forward');
+    return results?.content[0]?.text;
 }
 
 /**
@@ -60,19 +62,15 @@ export async function getFPLAdvice(teamId: number, cookie: string): Promise<stri
  3. **Position Match:** The player being transferred out and the player being transferred in must have the same position.
  4. **Budget Constraint:** The total cost of the incoming players must be less than or equal to the user's budget plus the value gained from selling the outgoing players. Ensure the budget after the transfer(s) is not negative.
 
- Return only the recommendations in a readable format, clearly showing the player going out and the player coming in for each suggested transfer. For example:
+ Return nothing else but the recommendations in a readable format, clearly showing the player going out and the player coming in for each suggested transfer. For example:
 
  Out: [Player Name from Current Team]
  In: [Player Name from Best Transfer Options]
+ Cost: [Cost to make transfer, should be negative if out > in]
   `;
-    
-    console.log(prompt.replace(/Position: 1/g,"Goalkeeper")
-        .replace(/Position: 2/g,"Defender")
-        .replace(/Position: 3/g,"Midfielder")
-        .replace(/Position: 4/g,"Forward"));
 
     return await invokeBedrock(
-        "amazon.titan-text-lite-v1",
+        "anthropic.claude-3-sonnet-20240229-v1:0",
         prompt.replace(/Position: 1/g,"Goalkeeper")
             .replace(/Position: 2/g,"Defender")
             .replace(/Position: 3/g,"Midfielder")

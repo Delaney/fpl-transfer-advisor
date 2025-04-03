@@ -33,12 +33,12 @@ async function fetchAndStoreFPLData() {
         const command = new client_dynamodb_1.PutItemCommand({
             TableName: "FPLPlayers",
             Item: {
-                playerId: { S: player.id.toString() },
+                playerId: { N: player.id.toString() },
                 name: { S: player.web_name },
-                position: { S: player.element_type.toString() },
+                position: { N: player.element_type.toString() },
                 team: { S: player.team_code.toString() },
                 points: { N: player.total_points.toString() },
-                form: { S: player.form },
+                form: { N: player.form },
                 nextFixtureDifficulty: { S: difficulty.toString() },
                 price: { N: (player.now_cost / 10).toString() },
                 chanceOfPlaying: { N: player.chance_of_playing_next_round?.toString() ?? '0' },
@@ -69,7 +69,7 @@ async function getTopTransferRecommendations() {
     }));
 }
 async function getRecommendationData(teamId, cookie) {
-    const minFormValue = 7.0;
+    const minFormValue = 6.0;
     const res = await fetch(`${config_1.default.fplBaseURL}/bootstrap-static/`);
     const data = await res.json();
     const now = Math.floor(Date.now() / 1000);
@@ -91,41 +91,37 @@ async function getRecommendationData(teamId, cookie) {
         return `${player.web_name} (Position: ${player.element_type}) (Form: ${player.form}, Price: £${player.now_cost / 10}, Next Fixture Difficulty: ${difficulty})`;
     })
         .join('\n');
+    const positionCodes = [1, 2, 3, 4];
+    const recommendations = [];
+    for (const position of positionCodes) {
+        const command = new client_dynamodb_1.QueryCommand({
+            TableName: "FPLPlayers",
+            IndexName: "position-form-index",
+            KeyConditionExpression: "#position = :position AND form >= :minForm",
+            ExpressionAttributeValues: {
+                ":minForm": { N: minFormValue.toString() },
+                ":position": { N: position.toString() },
+            },
+            ExpressionAttributeNames: {
+                "#position": "position", // Map #position to the actual attribute name "position"
+            },
+            Limit: 15,
+        });
+        const { Items } = await dynamo.send(command);
+        recommendations.push(...Items?.map((item) => ({
+            name: item.name.S,
+            position: item.position.N,
+            form: item.form.N,
+            price: item.price.N,
+            nextFixtureDifficulty: item.nextFixtureDifficulty.S,
+        })));
+    }
     return {
         userPlayers,
-        recommendations: data.elements
-            .filter(player => Number(player.form) >= minFormValue && player.element_type !== 5) // No managers yet
-            .map((player) => {
-            const difficulty = getDifficulty(fixtures, player.team_code);
-            return {
-                name: player.web_name,
-                position: player.element_type.toString(),
-                form: player.form,
-                price: (player.now_cost / 10).toString(),
-                nextFixtureDifficulty: difficulty.toString(),
-            };
-        }),
+        recommendations,
         freeTransfers,
         budget,
     };
-    // const command = new QueryCommand({
-    //     TableName: "FPLPlayers",
-    //     IndexName: "form-index",
-    //     KeyConditionExpression: "form >= :minForm",
-    //     ExpressionAttributeValues: {
-    //         ":minForm": { N: minFormValue.toString() },
-    //     },
-    //     Limit: 15,
-    // });
-    //
-    // const { Items } = await dynamo.send(command);
-    // return Items?.map((item) => ({
-    //     name: item.name.S!,
-    //     position: item.position.N!,
-    //     form: item.form.N!,
-    //     price: item.price.N!,
-    //     nextFixtureDifficulty: item.nextFixtureDifficulty.N!,
-    // }));
 }
 function getDifficulty(fixtures, teamCode) {
     const nextGWFixture = fixtures.find(f => [f.team_a, f.team_h].includes(teamCode));
