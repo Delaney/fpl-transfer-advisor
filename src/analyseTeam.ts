@@ -1,5 +1,6 @@
 import {getFPLData, getUserTeam} from './fetchFPLData';
-import {FPLTeam, Player, TransferSuggestion} from "./types";
+import {FPLTeam, Main, Player, TransferSuggestion} from "./types";
+import config from "./config";
 
 /**
  * Evaluates a player's performance score based on form, points, and fixtures.
@@ -90,6 +91,7 @@ export async function findBestTransfers(
                         });
 
                         budget -= replacement.now_cost - player.now_cost;
+                        freeTransfers--;
                         foundValidTransfer = true;
                         replaced = true;
 
@@ -121,6 +123,40 @@ export async function analyseTeam(teamId: number, cookie: string, single: boolea
     return single ?
         findBestTransfer(userTeam, players, budget) :
         findBestTransfers(userTeam, players, budget, freeTransfers);
+}
+
+export async function getTopTransferRecommendations() {
+    const res = await fetch(`${config.fplBaseURL}/bootstrap-static/`);
+    const data = await res.json() as Main;
+    const gameweeks = data.events;
+    const now = Math.floor(Date.now() / 1000);
+    const nextGW = data.events
+        .filter(gw => gw.deadline_time_epoch > now)  // Get only future gameweeks
+        .sort((a, b) => a.deadline_time_epoch - b.deadline_time_epoch)[0];
+
+    if (!nextGW) {
+        throw new Error("No upcoming gameweek.");
+    }
+
+    const pastGameweeks = gameweeks.filter(gw => gw.deadline_time_epoch < now);
+
+    const transferTrends: Record<number, number> = {};
+    pastGameweeks.forEach(gw => {
+        if (gw.most_transferred_in) {
+            transferTrends[gw.most_transferred_in] =
+                (transferTrends[gw.most_transferred_in] || 0) + 1;
+        }
+    });
+
+    const topTransfers = Object.entries(transferTrends)
+        .sort(([, a], [, b]) => b - a) // Sort by most transferred in
+        .slice(0, 10) // Get top 10 transfer recommendations
+        .map(([playerId]) => parseInt(playerId, 10));
+
+    return {
+        nextGameweek: nextGW.name,
+        recommendedPlayers: topTransfers
+    };
 }
 
 function evaluatePlayerPerformance(player: Player): number {

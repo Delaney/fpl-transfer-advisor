@@ -2,6 +2,7 @@ export interface Main {
     teams: PLTeam[];
     element_types: Position[];
     elements: Player[];
+    events: Event[];
 }
 
 export interface Player {
@@ -16,6 +17,8 @@ export interface Player {
     status: string;
     expected_goals_conceded: string;
     minutes: number;
+    team_code: number;
+    chance_of_playing_next_round: number;
 }
 
 export interface Position {
@@ -68,4 +71,28 @@ export interface TransferSuggestion {
     out: string;
     in: string;
     cost: number;
+}
+
+export interface Event {
+    id: number;
+    name: string;
+    deadline_time_epoch: number;
+    most_transferred_in: number;
+}
+
+export interface Fixture {
+    code: number;
+    event: number;
+    team_a: number;
+    team_h: number;
+    team_h_difficulty: number;
+    team_a_difficulty: number;
+}
+
+export interface TopRecommendation {
+    name: string;
+    position: string;
+    form: string;
+    price: string;
+    nextFixtureDifficulty: string;
 }
