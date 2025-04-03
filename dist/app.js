@@ -6,11 +6,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const body_parser_1 = __importDefault(require("body-parser"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const fetchFPLData_1 = require("./fetchFPLData");
 const analyseTeam_1 = require("./analyseTeam");
 const bedrock_1 = require("./bedrock");
 const dynamo_1 = require("./dynamo");
 const app = (0, express_1.default)();
+const limiter = (0, express_rate_limit_1.default)({
+    windowMs: 24 * 60 * 60 * 1000, // 15 minutes
+    max: 10,
+    message: {
+        status: 429,
+        error: 'You have reached your daily limit, please try again later.',
+    },
+});
 app.use(body_parser_1.default.json());
 app.use((0, cors_1.default)());
 app.post('/team', async (req, res, next) => {
@@ -52,7 +61,7 @@ app.post('/simple-analysis-multiple', async (req, res, next) => {
         next(error);
     }
 });
-app.post("/recommend", async (req, res, next) => {
+app.post("/recommend", limiter, async (req, res, next) => {
     const { teamId, cookie } = req.body;
     if (!teamId || !cookie) {
         res.status(400).json({ error: "Team ID or cookie is invalid" });
