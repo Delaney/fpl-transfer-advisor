@@ -1,12 +1,23 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import { getUserTeam } from "./fetchFPLData";
+import rateLimit from 'express-rate-limit';
+
+import {getUserTeam} from "./fetchFPLData";
 import {analyseTeam} from "./analyseTeam";
 import {getFPLAdvice} from "./bedrock";
 import {fetchAndStoreFPLData} from "./dynamo";
 
 const app = express();
+
+const limiter = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, // 15 minutes
+    max: 10,
+    message: {
+        status: 429,
+        error: 'You have reached your daily limit, please try again later.',
+    },
+});
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -56,7 +67,7 @@ app.post('/simple-analysis-multiple', async (req, res, next) => {
     }
 });
 
-app.post("/recommend", async (req, res, next) => {
+app.post("/recommend", limiter, async (req, res, next) => {
     const { teamId, cookie } = req.body;
 
     if (!teamId || !cookie) {
