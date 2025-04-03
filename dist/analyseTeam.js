@@ -1,8 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findBestTransfers = findBestTransfers;
 exports.analyseTeam = analyseTeam;
+exports.getTopTransferRecommendations = getTopTransferRecommendations;
 const fetchFPLData_1 = require("./fetchFPLData");
+const config_1 = __importDefault(require("./config"));
 /**
  * Evaluates a player's performance score based on form, points, and fixtures.
  */
@@ -73,6 +78,7 @@ async function findBestTransfers(userTeam, allPlayers, budget, freeTransfers) {
                             cost: replacement.now_cost - player.now_cost,
                         });
                         budget -= replacement.now_cost - player.now_cost;
+                        freeTransfers--;
                         foundValidTransfer = true;
                         replaced = true;
                         userTeam.picks = userTeam.picks.map(p => p.element === player.id ? { ...p, element: replacement.id } : p);
@@ -97,6 +103,34 @@ async function analyseTeam(teamId, cookie, single = true) {
     return single ?
         findBestTransfer(userTeam, players, budget) :
         findBestTransfers(userTeam, players, budget, freeTransfers);
+}
+async function getTopTransferRecommendations() {
+    const res = await fetch(`${config_1.default.fplBaseURL}/bootstrap-static/`);
+    const data = await res.json();
+    const gameweeks = data.events;
+    const now = Math.floor(Date.now() / 1000);
+    const nextGW = data.events
+        .filter(gw => gw.deadline_time_epoch > now) // Get only future gameweeks
+        .sort((a, b) => a.deadline_time_epoch - b.deadline_time_epoch)[0];
+    if (!nextGW) {
+        throw new Error("No upcoming gameweek.");
+    }
+    const pastGameweeks = gameweeks.filter(gw => gw.deadline_time_epoch < now);
+    const transferTrends = {};
+    pastGameweeks.forEach(gw => {
+        if (gw.most_transferred_in) {
+            transferTrends[gw.most_transferred_in] =
+                (transferTrends[gw.most_transferred_in] || 0) + 1;
+        }
+    });
+    const topTransfers = Object.entries(transferTrends)
+        .sort(([, a], [, b]) => b - a) // Sort by most transferred in
+        .slice(0, 10) // Get top 10 transfer recommendations
+        .map(([playerId]) => parseInt(playerId, 10));
+    return {
+        nextGameweek: nextGW.name,
+        recommendedPlayers: topTransfers
+    };
 }
 function evaluatePlayerPerformance(player) {
     const { total_points, form, now_cost, minutes } = player;

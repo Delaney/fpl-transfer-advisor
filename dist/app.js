@@ -4,11 +4,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const fetchFPLData_1 = require("./fetchFPLData");
 const analyseTeam_1 = require("./analyseTeam");
+const bedrock_1 = require("./bedrock");
+const dynamo_1 = require("./dynamo");
 const app = (0, express_1.default)();
 app.use(body_parser_1.default.json());
+app.use((0, cors_1.default)());
 app.post('/team', async (req, res, next) => {
     const { teamId, cookie } = req.body;
     if (!teamId || !cookie) {
@@ -47,5 +51,22 @@ app.post('/simple-analysis-multiple', async (req, res, next) => {
     catch (error) {
         next(error);
     }
+});
+app.post("/recommend", async (req, res, next) => {
+    const { teamId, cookie } = req.body;
+    if (!teamId || !cookie) {
+        res.status(400).json({ error: "Team ID or cookie is invalid" });
+    }
+    try {
+        const recommendations = await (0, bedrock_1.getFPLAdvice)(teamId, cookie);
+        res.json({ recommendations });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+app.post("/update-dynamo", async (req, res) => {
+    await (0, dynamo_1.fetchAndStoreFPLData)();
+    res.json({ success: true });
 });
 exports.default = app;
