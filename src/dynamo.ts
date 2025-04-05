@@ -147,7 +147,7 @@ export async function getRecommendationData(teamId: number, cookie: string) {
                 ":position": { N: position.toString() },
             },
             ExpressionAttributeNames: {
-                "#position": "position", // Map #position to the actual attribute name "position"
+                "#position": "position",
             },
             Limit: 15,
         });

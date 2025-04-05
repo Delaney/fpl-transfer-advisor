@@ -18,8 +18,7 @@ function findBestTransfer(userTeam: FPLTeam, allPlayers: Player[], budget: numbe
     // Identify the weakest player
     let sortedTeam = userTeam.picks
         .map(pick => {
-            // @ts-ignore
-            let player: Player = allPlayers.find(p => p.id === pick.element);
+            let player: Player = allPlayers.find(p => p.id === pick.element)!;
             return { ...player, score: evaluatePlayer(player) };
         })
         .sort((a, b) => a.score - b.score); // Sort ascending (worst first)
@@ -190,6 +189,5 @@ function getPotentialReplacements(playerOut: Player, allPlayers: Player[], userT
         (clubCounts[p.team] ?? 0) < 3
     );
 
-    // Sort candidates by best performance
     return candidates.sort((a, b) => evaluatePlayerPerformance(b) - evaluatePlayerPerformance(a));
 }
