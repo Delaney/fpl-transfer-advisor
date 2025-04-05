@@ -8,6 +8,7 @@ interface Config {
     awsAccessKey: string;
     awsSecretKey: string;
     awsRegion: string;
+    awsKnowledgeBaseId: string;
 }
 
 const config: Config = {
@@ -16,6 +17,7 @@ const config: Config = {
     awsSecretKey: process.env.AWS_SECRET_ACCESS_KEY!,
     awsRegion: process.env.AWS_REGION!,
     fplBaseURL: process.env.FPL_BASE_URL!,
+    awsKnowledgeBaseId: process.env.AWS_KNOWLEDGE_ID!,
 }
 
 export default config;
