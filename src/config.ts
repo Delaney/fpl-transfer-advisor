@@ -10,6 +10,7 @@ interface Config {
     awsRegion: string;
     awsKnowledgeBaseId: string;
     awsAgentId: string;
+    awsAgentAliasId: string;
 }
 
 const config: Config = {
@@ -20,6 +21,7 @@ const config: Config = {
     fplBaseURL: process.env.FPL_BASE_URL!,
     awsKnowledgeBaseId: process.env.AWS_KNOWLEDGE_ID!,
     awsAgentId: process.env.AWS_AGENT_ID!,
+    awsAgentAliasId: process.env.AWS_AGENT_ALIAS_ID!,
 }
 
 export default config;

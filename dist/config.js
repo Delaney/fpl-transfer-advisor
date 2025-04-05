@@ -13,5 +13,6 @@ const config = {
     fplBaseURL: process.env.FPL_BASE_URL,
     awsKnowledgeBaseId: process.env.AWS_KNOWLEDGE_ID,
     awsAgentId: process.env.AWS_AGENT_ID,
+    awsAgentAliasId: process.env.AWS_AGENT_ALIAS_ID,
 };
 exports.default = config;

@@ -15,8 +15,8 @@ const client = new client_bedrock_agent_runtime_1.BedrockAgentRuntimeClient({
         secretAccessKey: config_1.default.awsSecretKey,
     }
 });
-const agentId = "VICAXIAMFY";
-const agentAliasId = "GKDV2MHUHJ";
+const agentId = config_1.default.awsAgentId;
+const agentAliasId = config_1.default.awsAgentAliasId;
 async function invokeBedrock(modelId, prompt) {
     // const sessionId = Math.random().toString(36).substring(2);
     // const command = new InvokeAgentCommand({

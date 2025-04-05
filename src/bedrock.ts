@@ -16,9 +16,8 @@ const client = new BedrockAgentRuntimeClient({
     }
 });
 
-const agentId = "VICAXIAMFY";
-const agentAliasId = "GKDV2MHUHJ";
-
+const agentId = config.awsAgentId;
+const agentAliasId = config.awsAgentAliasId;
 
 export async function invokeBedrock(modelId: string, prompt: string) {
     // const sessionId = Math.random().toString(36).substring(2);
