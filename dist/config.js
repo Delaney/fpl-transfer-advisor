@@ -11,5 +11,7 @@ const config = {
     awsSecretKey: process.env.AWS_SECRET_ACCESS_KEY,
     awsRegion: process.env.AWS_REGION,
     fplBaseURL: process.env.FPL_BASE_URL,
+    awsKnowledgeBaseId: process.env.AWS_KNOWLEDGE_ID,
+    awsAgentId: process.env.AWS_AGENT_ID,
 };
 exports.default = config;

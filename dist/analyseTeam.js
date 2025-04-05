@@ -22,7 +22,6 @@ function findBestTransfer(userTeam, allPlayers, budget) {
     // Identify the weakest player
     let sortedTeam = userTeam.picks
         .map(pick => {
-        // @ts-ignore
         let player = allPlayers.find(p => p.id === pick.element);
         return { ...player, score: evaluatePlayer(player) };
     })
@@ -155,6 +154,5 @@ function getPotentialReplacements(playerOut, allPlayers, userTeam) {
         p.now_cost <= budgetAvailable &&
         evaluatePlayerPerformance(p) > evaluatePlayerPerformance(playerOut) &&
         (clubCounts[p.team] ?? 0) < 3);
-    // Sort candidates by best performance
     return candidates.sort((a, b) => evaluatePlayerPerformance(b) - evaluatePlayerPerformance(a));
 }
