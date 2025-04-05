@@ -1,11 +1,14 @@
-import { DynamoDBClient, PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, PutItemCommand, QueryCommand, BatchGetItemCommand } from "@aws-sdk/client-dynamodb";
 import config from "./config";
-import {Fixture, Main, Player} from "./types";
+import {Fixture, Main, Player, PLTeam} from "./types";
 import {getUserTeam} from "./fetchFPLData";
 
 const dynamo = new DynamoDBClient({
     region: config.awsRegion,
 });
+
+const tableName = "FPLPlayers";
+const primaryKey = "playerId";
 
 export async function fetchAndStoreFPLData() {
     const res = await fetch(`${config.fplBaseURL}/bootstrap-static/`);
@@ -22,6 +25,21 @@ export async function fetchAndStoreFPLData() {
 
     const res2 = await fetch(`${config.fplBaseURL}/fixtures/?event=${nextGW}`);
     const fixtures = await res2.json() as Fixture[];
+
+    for (const team of data.teams as PLTeam[]) {
+        const command = new PutItemCommand({
+            TableName: "FPLTeams",
+            Item: {
+                id: {N: team.id.toString()},
+                name: {S: team.name.toString()},
+                code: {N: team.code.toString()},
+                shortName: {S: team.short_name.toString()},
+                strength: {N: team.strength.toString()},
+            },
+        });
+
+        await dynamo.send(command);
+    }
 
     for (const player of data.elements as Player[]) {
         const nextGWFixture = fixtures.find(f => [f.team_a, f.team_h].includes(player.team_code))!;
@@ -88,21 +106,32 @@ export async function getRecommendationData(teamId: number, cookie: string) {
         throw new Error("No upcoming gameweek.");
     }
 
-    const res2 = await fetch(`${config.fplBaseURL}/fixtures/?event=${nextGW}`);
-    const fixtures = await res2.json() as Fixture[];
-
     const userTeam = await getUserTeam(teamId, cookie);
 
     const freeTransfers = userTeam.transfers.limit;
     const budget = userTeam.transfers.bank / 10;
 
-    const userPlayers = data.elements
-        .filter(player => userTeam.picks.map(up => up.element).includes(player.id))
-        .map(player => {
-            const difficulty = getDifficulty(fixtures, player.team_code);
-            return `${player.web_name} (Position: ${player.element_type}) (Form: ${player.form}, Price: £${player.now_cost / 10}, Next Fixture Difficulty: ${difficulty})`
-        })
-        .join('\n');
+    const playerIds = userTeam.picks.map(player => player.element);
+
+    const command = new BatchGetItemCommand({
+        RequestItems: {
+            [tableName]: {
+                Keys: playerIds.map(id => ({
+                    [primaryKey]: { N: id.toString() },
+                }))
+            }
+        }
+    });
+
+    const { Responses } = await dynamo.send(command);
+    const userPlayers = Responses?.[tableName]?.map((item) => ({
+        name: item.name.S!,
+        position: item.position.N!,
+        team: item.team.S!,
+        form: item.form.N!,
+        price: item.price.N!,
+        nextFixtureDifficulty: item.nextFixtureDifficulty.S!,
+    }))!;
 
     const positionCodes = [1, 2, 3, 4];
 
@@ -127,6 +156,7 @@ export async function getRecommendationData(teamId: number, cookie: string) {
         recommendations.push(...Items?.map((item) => ({
             name: item.name.S!,
             position: item.position.N!,
+            team: item.team.S!,
             form: item.form.N!,
             price: item.price.N!,
             nextFixtureDifficulty: item.nextFixtureDifficulty.S!,
