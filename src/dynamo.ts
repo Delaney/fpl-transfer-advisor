@@ -26,21 +26,6 @@ export async function fetchAndStoreFPLData() {
     const res2 = await fetch(`${config.fplBaseURL}/fixtures/?event=${nextGW}`);
     const fixtures = await res2.json() as Fixture[];
 
-    for (const team of data.teams as PLTeam[]) {
-        const command = new PutItemCommand({
-            TableName: "FPLTeams",
-            Item: {
-                id: {N: team.id.toString()},
-                name: {S: team.name.toString()},
-                code: {N: team.code.toString()},
-                shortName: {S: team.short_name.toString()},
-                strength: {N: team.strength.toString()},
-            },
-        });
-
-        await dynamo.send(command);
-    }
-
     for (const player of data.elements as Player[]) {
         const nextGWFixture = fixtures.find(f => [f.team_a, f.team_h].includes(player.team_code))!;
         const difficulty = nextGWFixture ?
@@ -93,25 +78,12 @@ export async function getTopTransferRecommendations() {
 
 export async function getRecommendationData(teamId: number, cookie: string) {
     const minFormValue = 6.0;
-
-    const res = await fetch(`${config.fplBaseURL}/bootstrap-static/`);
-    const data = await res.json() as Main;
-
-    const now = Math.floor(Date.now() / 1000);
-    const nextGW = data.events
-        .filter(gw => gw.deadline_time_epoch > now)
-        .sort((a, b) => a.deadline_time_epoch - b.deadline_time_epoch)[0]?.id;
-
-    if (!nextGW) {
-        throw new Error("No upcoming gameweek.");
-    }
-
     const userTeam = await getUserTeam(teamId, cookie);
-
     const freeTransfers = userTeam.transfers.limit;
     const budget = userTeam.transfers.bank / 10;
-
     const playerIds = userTeam.picks.map(player => player.element);
+    const positionCodes = [1, 2, 3, 4];
+    const recommendations = [];
 
     const command = new BatchGetItemCommand({
         RequestItems: {
@@ -132,10 +104,6 @@ export async function getRecommendationData(teamId: number, cookie: string) {
         price: item.price.N!,
         nextFixtureDifficulty: item.nextFixtureDifficulty.S!,
     }))!;
-
-    const positionCodes = [1, 2, 3, 4];
-
-    const recommendations = [];
 
     for (const position of positionCodes) {
         const command = new QueryCommand({

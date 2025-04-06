@@ -19,33 +19,12 @@ const client = new BedrockAgentRuntimeClient({
 const agentId = config.awsAgentId;
 const agentAliasId = config.awsAgentAliasId;
 
-export async function invokeBedrock(modelId: string, prompt: string) {
-    // const sessionId = Math.random().toString(36).substring(2);
-    // const command = new InvokeAgentCommand({
-    //     agentId,
-    //     agentAliasId,
-    //     sessionId,
-    //     inputText: prompt,
-    //     streamingConfigurations: {
-    //         streamFinalResponse: true,
-    //     },
-    // });
-    //
-    // let recommendations = "";
-    // const response = await client.send(command);
-    //
-    // if (response.completion === undefined) {
-    //     throw new Error("Completion is undefined");
-    // }
-    //
-    // for await (const chunkEvent of response.completion!) {
-    //     const chunk = chunkEvent.chunk!;
-    //     const decodedResponse = new TextDecoder("utf-8").decode(chunk.bytes);
-    //     recommendations += decodedResponse;
-    // }
-    //
-    // return recommendations;
-
+/**
+ * Query Bedrock model directly
+ * @param modelId
+ * @param prompt
+ */
+export async function queryBedrock(modelId: string, prompt: string) {
     const input = {
         input: {
             text: prompt,
@@ -71,7 +50,40 @@ export async function invokeBedrock(modelId: string, prompt: string) {
 }
 
 /**
- * API function to get FPL advice.
+ * Invoke Bedrock RAG agent
+ * @param modelId
+ * @param prompt
+ */
+export async function invokeBedrock(modelId: string, prompt: string) {
+    const sessionId = Math.random().toString(36).substring(2);
+    const command = new InvokeAgentCommand({
+        agentId,
+        agentAliasId,
+        sessionId,
+        inputText: prompt,
+        streamingConfigurations: {
+            streamFinalResponse: true,
+        },
+    });
+
+    let recommendations = "";
+    const response = await client.send(command);
+
+    if (response.completion === undefined) {
+        throw new Error("Completion is undefined");
+    }
+
+    for await (const chunkEvent of response.completion!) {
+        const chunk = chunkEvent.chunk!;
+        const decodedResponse = new TextDecoder("utf-8").decode(chunk.bytes);
+        recommendations += decodedResponse;
+    }
+
+    return recommendations;
+}
+
+/**
+ * API function to get FPL advice prompt.
  */
 export async function getFPLAdvice(teamId: number, cookie: string): Promise<string> {
     const {userPlayers, recommendations, freeTransfers, budget} = await getRecommendationData(teamId, cookie);
@@ -101,6 +113,30 @@ export async function getFPLAdvice(teamId: number, cookie: string): Promise<stri
  Cost: [Cost to make transfer, should be negative if out > in]
 
  Do not include team codes in the result.
+  `;
+
+    return await invokeBedrock(
+        "anthropic.claude-3-sonnet-20240229-v1:0",
+        prompt.replace(/Position: 1/g,"Goalkeeper")
+            .replace(/Position: 2/g,"Defender")
+            .replace(/Position: 3/g,"Midfielder")
+            .replace(/Position: 4/g,"Forward")
+    );
+}
+
+/**
+ * API function to get FPL Agent prompt.
+ */
+export async function getFPLAgentAdvice(teamId: number, cookie: string): Promise<string> {
+    const {userPlayers, recommendations, freeTransfers, budget} = await getRecommendationData(teamId, cookie);
+
+    const prompt = `The user’s current team is:\n
+  ${userPlayers.map((p) => `- ${p.name} (Position: ${p.position}, Team: ${p.team}) (Form: ${p.form}, Price: £${p.price}, Next Fixture Difficulty: ${p.nextFixtureDifficulty})`).join(`\n`)}.\n
+
+ The user has only  free transfers left, and a budget of ${budget}.
+
+ Based on the current gameweek, the best transfer options are:\n
+  ${recommendations.map((p) => `- ${p.name} (Position: ${p.position}, Team: ${p.team}) (Form: ${p.form}, Price: £${p.price}, Next Fixture Difficulty: ${p.nextFixtureDifficulty})`).join(`\n`)}.
   `;
 
     return await invokeBedrock(
