@@ -1,26 +1,21 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import rateLimit from 'express-rate-limit';
+
+import simpleRoutes from "./routes/simple";
+import bedrockRoutes from "./routes/bedrock";
+import dynamoRoutes from "./routes/dynamo";
 
 import {getUserTeam} from "./fetchFPLData";
-import {analyseTeam} from "./analyseTeam";
-import {getFPLAdvice} from "./bedrock";
-import {fetchAndStoreFPLData} from "./dynamo";
+import {simulateLogin} from "./puppeteer";
 
 const app = express();
-
-const limiter = rateLimit({
-    windowMs: 24 * 60 * 60 * 1000, // 15 minutes
-    max: 10,
-    message: {
-        status: 429,
-        error: 'You have reached your daily limit, please try again later.',
-    },
-});
-
 app.use(bodyParser.json());
 app.use(cors());
+
+app.use('/', bedrockRoutes);
+app.use('/', dynamoRoutes);
+app.use('/simple-analysis', simpleRoutes);
 
 app.post('/team', async (req, res, next) => {
     const { teamId, cookie } = req.body;
@@ -37,54 +32,21 @@ app.post('/team', async (req, res, next) => {
     }
 });
 
-app.post('/simple-analysis-single', async (req, res, next) => {
-    const { teamId, cookie } = req.body;
-
-    if (!teamId || !cookie) {
-        res.status(400).json({error: "Team ID or cookie is invalid"});
+app.post("/simulate-login", async (req, res, next) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        res.status(400).json({ error: 'Missing required parameters.' });
     }
 
     try {
-        const team = await analyseTeam(teamId, cookie);
-        res.json(team);
+        const responses = await simulateLogin(
+            username,
+            password,
+        );
+        res.json({ message: 'Login simulation complete.', responses });
     } catch (error) {
-        next(error);
+        next(error)
     }
-});
-
-app.post('/simple-analysis-multiple', async (req, res, next) => {
-    const { teamId, cookie } = req.body;
-
-    if (!teamId || !cookie) {
-        res.status(400).json({error: "Team ID or cookie is invalid"});
-    }
-
-    try {
-        const team = await analyseTeam(teamId, cookie, false);
-        res.json(team);
-    } catch (error) {
-        next(error);
-    }
-});
-
-app.post("/recommend", limiter, async (req, res, next) => {
-    const { teamId, cookie } = req.body;
-
-    if (!teamId || !cookie) {
-        res.status(400).json({error: "Team ID or cookie is invalid"});
-    }
-
-    try {
-        const recommendations = await getFPLAdvice(teamId, cookie);
-        res.json({ recommendations });
-    } catch (error) {
-        next(error);
-    }
-});
-
-app.post("/update-dynamo", async (req, res) => {
-    await fetchAndStoreFPLData();
-    res.json({ success: true });
 });
 
 export default app;
