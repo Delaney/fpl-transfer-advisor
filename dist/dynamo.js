@@ -26,19 +26,6 @@ async function fetchAndStoreFPLData() {
     }
     const res2 = await fetch(`${config_1.default.fplBaseURL}/fixtures/?event=${nextGW}`);
     const fixtures = await res2.json();
-    for (const team of data.teams) {
-        const command = new client_dynamodb_1.PutItemCommand({
-            TableName: "FPLTeams",
-            Item: {
-                id: { N: team.id.toString() },
-                name: { S: team.name.toString() },
-                code: { N: team.code.toString() },
-                shortName: { S: team.short_name.toString() },
-                strength: { N: team.strength.toString() },
-            },
-        });
-        await dynamo.send(command);
-    }
     for (const player of data.elements) {
         const nextGWFixture = fixtures.find(f => [f.team_a, f.team_h].includes(player.team_code));
         const difficulty = nextGWFixture ?
@@ -85,19 +72,12 @@ async function getTopTransferRecommendations() {
 }
 async function getRecommendationData(teamId, cookie) {
     const minFormValue = 6.0;
-    const res = await fetch(`${config_1.default.fplBaseURL}/bootstrap-static/`);
-    const data = await res.json();
-    const now = Math.floor(Date.now() / 1000);
-    const nextGW = data.events
-        .filter(gw => gw.deadline_time_epoch > now)
-        .sort((a, b) => a.deadline_time_epoch - b.deadline_time_epoch)[0]?.id;
-    if (!nextGW) {
-        throw new Error("No upcoming gameweek.");
-    }
     const userTeam = await (0, fetchFPLData_1.getUserTeam)(teamId, cookie);
     const freeTransfers = userTeam.transfers.limit;
     const budget = userTeam.transfers.bank / 10;
     const playerIds = userTeam.picks.map(player => player.element);
+    const positionCodes = [1, 2, 3, 4];
+    const recommendations = [];
     const command = new client_dynamodb_1.BatchGetItemCommand({
         RequestItems: {
             [tableName]: {
@@ -116,8 +96,6 @@ async function getRecommendationData(teamId, cookie) {
         price: item.price.N,
         nextFixtureDifficulty: item.nextFixtureDifficulty.S,
     }));
-    const positionCodes = [1, 2, 3, 4];
-    const recommendations = [];
     for (const position of positionCodes) {
         const command = new client_dynamodb_1.QueryCommand({
             TableName: "FPLPlayers",

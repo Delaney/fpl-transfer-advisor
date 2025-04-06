@@ -115,7 +115,7 @@ export async function getFPLAdvice(teamId: number, cookie: string): Promise<stri
  Do not include team codes in the result.
   `;
 
-    return await invokeBedrock(
+    return await queryBedrock(
         "anthropic.claude-3-sonnet-20240229-v1:0",
         prompt.replace(/Position: 1/g,"Goalkeeper")
             .replace(/Position: 2/g,"Defender")
