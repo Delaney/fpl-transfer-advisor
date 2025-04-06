@@ -45,6 +45,7 @@ cp .env.example .env
 AWS_ACCESS_KEY_ID=your_key
 AWS_SECRET_ACCESS_KEY=your_secret
 AWS_REGION=your_region
+AWS_LLM_ID=ID of Amazon Bedrock LLM model you selected
 
 # If you choose to include an agent
 AWS_KNOWLEDGE_ID=your_knowledge_base_id

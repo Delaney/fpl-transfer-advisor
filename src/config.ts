@@ -20,7 +20,7 @@ const config: Config = {
     awsSecretKey: process.env.AWS_SECRET_ACCESS_KEY!,
     awsRegion: process.env.AWS_REGION!,
     fplBaseURL: process.env.FPL_BASE_URL!,
-    awsKnowledgeBaseId: process.env.AWS_KNOWLEDGE_ID!,
+    awsKnowledgeBaseId: process.env.AWS_KNOWLEDGE_BASE_ID!,
     awsAgentId: process.env.AWS_AGENT_ID!,
     awsAgentAliasId: process.env.AWS_AGENT_ALIAS_ID!,
     awsLlmId: process.env.AWS_LLM_ID!,
