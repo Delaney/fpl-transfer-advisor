@@ -101,9 +101,9 @@ async function getFPLAdvice(teamId, cookie) {
 
  Return nothing else but the recommendations in a readable format, clearly showing the player going out and the player coming in for each suggested transfer. For example:
 
- Out: [Player Name from Current Team]
- In: [Player Name from Best Transfer Options]
- Cost: [Cost to make transfer, should be negative if out > in]
+ Out: [Player Name from Current Team]\n
+ In: [Player Name from Best Transfer Options]\n
+ Cost: [Cost to make transfer, should be negative if out > in]\n
 
  Do not include team codes in the result.
   `;
