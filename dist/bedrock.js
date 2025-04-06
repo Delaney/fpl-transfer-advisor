@@ -19,6 +19,7 @@ const client = new client_bedrock_agent_runtime_1.BedrockAgentRuntimeClient({
 });
 const agentId = config_1.default.awsAgentId;
 const agentAliasId = config_1.default.awsAgentAliasId;
+const llmId = config_1.default.awsLlmId;
 /**
  * Query Bedrock model directly
  * @param modelId
@@ -33,7 +34,7 @@ async function queryBedrock(modelId, prompt) {
             type: client_bedrock_agent_runtime_1.RetrieveAndGenerateType.KNOWLEDGE_BASE,
             knowledgeBaseConfiguration: {
                 knowledgeBaseId: config_1.default.awsKnowledgeBaseId,
-                modelArn: "anthropic.claude-3-sonnet-20240229-v1:0",
+                modelArn: llmId,
                 retrievalConfiguration: {
                     vectorSearchConfiguration: {
                         numberOfResults: 10,
@@ -106,7 +107,7 @@ async function getFPLAdvice(teamId, cookie) {
 
  Do not include team codes in the result.
   `;
-    return await queryBedrock("anthropic.claude-3-sonnet-20240229-v1:0", prompt.replace(/Position: 1/g, "Goalkeeper")
+    return await queryBedrock(llmId, prompt.replace(/Position: 1/g, "Goalkeeper")
         .replace(/Position: 2/g, "Defender")
         .replace(/Position: 3/g, "Midfielder")
         .replace(/Position: 4/g, "Forward"));
@@ -124,7 +125,7 @@ async function getFPLAgentAdvice(teamId, cookie) {
  Based on the current gameweek, the best transfer options are:\n
   ${recommendations.map((p) => `- ${p.name} (Position: ${p.position}, Team: ${p.team}) (Form: ${p.form}, Price: £${p.price}, Next Fixture Difficulty: ${p.nextFixtureDifficulty})`).join(`\n`)}.
   `;
-    return await invokeBedrock("anthropic.claude-3-sonnet-20240229-v1:0", prompt.replace(/Position: 1/g, "Goalkeeper")
+    return await invokeBedrock(llmId, prompt.replace(/Position: 1/g, "Goalkeeper")
         .replace(/Position: 2/g, "Defender")
         .replace(/Position: 3/g, "Midfielder")
         .replace(/Position: 4/g, "Forward"));

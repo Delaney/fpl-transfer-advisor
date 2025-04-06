@@ -18,6 +18,7 @@ const client = new BedrockAgentRuntimeClient({
 
 const agentId = config.awsAgentId;
 const agentAliasId = config.awsAgentAliasId;
+const llmId = config.awsLlmId;
 
 /**
  * Query Bedrock model directly
@@ -33,7 +34,7 @@ export async function queryBedrock(modelId: string, prompt: string) {
             type: RetrieveAndGenerateType.KNOWLEDGE_BASE,
             knowledgeBaseConfiguration: {
                 knowledgeBaseId: config.awsKnowledgeBaseId,
-                modelArn: "anthropic.claude-3-sonnet-20240229-v1:0",
+                modelArn: llmId,
                 retrievalConfiguration: {
                     vectorSearchConfiguration: {
                         numberOfResults: 10,
@@ -116,7 +117,7 @@ export async function getFPLAdvice(teamId: number, cookie: string): Promise<stri
   `;
 
     return await queryBedrock(
-        "anthropic.claude-3-sonnet-20240229-v1:0",
+        llmId,
         prompt.replace(/Position: 1/g,"Goalkeeper")
             .replace(/Position: 2/g,"Defender")
             .replace(/Position: 3/g,"Midfielder")
@@ -140,7 +141,7 @@ export async function getFPLAgentAdvice(teamId: number, cookie: string): Promise
   `;
 
     return await invokeBedrock(
-        "anthropic.claude-3-sonnet-20240229-v1:0",
+        llmId,
         prompt.replace(/Position: 1/g,"Goalkeeper")
             .replace(/Position: 2/g,"Defender")
             .replace(/Position: 3/g,"Midfielder")

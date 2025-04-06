@@ -11,6 +11,7 @@ interface Config {
     awsKnowledgeBaseId: string;
     awsAgentId: string;
     awsAgentAliasId: string;
+    awsLlmId: string;
 }
 
 const config: Config = {
@@ -22,6 +23,7 @@ const config: Config = {
     awsKnowledgeBaseId: process.env.AWS_KNOWLEDGE_ID!,
     awsAgentId: process.env.AWS_AGENT_ID!,
     awsAgentAliasId: process.env.AWS_AGENT_ALIAS_ID!,
+    awsLlmId: process.env.AWS_LLM_ID!,
 }
 
 export default config;

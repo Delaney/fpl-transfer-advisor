@@ -14,5 +14,6 @@ const config = {
     awsKnowledgeBaseId: process.env.AWS_KNOWLEDGE_ID,
     awsAgentId: process.env.AWS_AGENT_ID,
     awsAgentAliasId: process.env.AWS_AGENT_ALIAS_ID,
+    awsLlmId: process.env.AWS_LLM_ID,
 };
 exports.default = config;
