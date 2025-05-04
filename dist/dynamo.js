@@ -70,11 +70,10 @@ async function getTopTransferRecommendations() {
         nextFixtureDifficulty: item.nextFixtureDifficulty.N,
     }));
 }
-async function getRecommendationData(teamId, cookie) {
+async function getRecommendationData(teamId) {
     const minFormValue = 6.0;
-    const userTeam = await (0, fetchFPLData_1.getUserTeam)(teamId, cookie);
-    const freeTransfers = userTeam.transfers.limit;
-    const budget = userTeam.transfers.bank / 10;
+    const userTeam = await (0, fetchFPLData_1.getUserTeam)(teamId);
+    const budget = userTeam?.bank ? userTeam.bank / 10 : 0;
     const playerIds = userTeam.picks.map(player => player.element);
     const positionCodes = [1, 2, 3, 4];
     const recommendations = [];
@@ -123,7 +122,6 @@ async function getRecommendationData(teamId, cookie) {
     return {
         userPlayers,
         recommendations,
-        freeTransfers,
         budget,
     };
 }

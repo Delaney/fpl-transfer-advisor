@@ -20,12 +20,15 @@ const limiter = (0, express_rate_limit_1.default)({
 app.use(body_parser_1.default.json());
 app.use((0, cors_1.default)());
 app.post("/recommend", limiter, async (req, res, next) => {
-    const { teamId, cookie } = req.body;
-    if (!teamId || !cookie) {
+    const { teamId, transfers } = req.body;
+    if (!teamId) {
         res.status(400).json({ error: "Team ID or cookie is invalid" });
     }
+    if (!transfers || isNaN(Number(transfers))) {
+        res.status(400).json({ error: "Please enter a valid number of transfers" });
+    }
     try {
-        const recommendations = await (0, bedrock_1.getFPLAdvice)(teamId, cookie);
+        const recommendations = await (0, bedrock_1.getFPLAdvice)(teamId, transfers);
         res.json({ recommendations });
     }
     catch (error) {

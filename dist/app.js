@@ -18,12 +18,12 @@ app.use('/', bedrock_1.default);
 app.use('/', dynamo_1.default);
 app.use('/simple-analysis', simple_1.default);
 app.post('/team', async (req, res, next) => {
-    const { teamId, cookie } = req.body;
-    if (!teamId || !cookie) {
+    const { teamId } = req.body;
+    if (!teamId) {
         res.status(400).json({ error: "Team ID or cookie is invalid" });
     }
     try {
-        const team = await (0, fetchFPLData_1.getUserTeam)(teamId, cookie);
+        const team = await (0, fetchFPLData_1.getUserTeam)(teamId);
         res.json(team);
     }
     catch (error) {

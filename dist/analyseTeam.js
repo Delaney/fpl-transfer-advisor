@@ -94,14 +94,11 @@ async function findBestTransfers(userTeam, allPlayers, budget, freeTransfers) {
 /**
  * Main function to analyze a team and return transfer recommendations.
  */
-async function analyseTeam(teamId, cookie, single = true) {
+async function analyseTeam(teamId, transfers) {
     const { players, positions } = await (0, fetchFPLData_1.getFPLData)();
-    const userTeam = await (0, fetchFPLData_1.getUserTeam)(teamId, cookie);
-    const budget = userTeam.transfers.bank / 10;
-    const freeTransfers = userTeam.transfers.limit;
-    return single ?
-        findBestTransfer(userTeam, players, budget) :
-        findBestTransfers(userTeam, players, budget, freeTransfers);
+    const userTeam = await (0, fetchFPLData_1.getUserTeam)(teamId);
+    const budget = userTeam?.bank ?? 0;
+    return findBestTransfers(userTeam, players, budget, transfers);
 }
 async function getTopTransferRecommendations() {
     const res = await fetch(`${config_1.default.fplBaseURL}/bootstrap-static/`);
@@ -134,14 +131,15 @@ async function getTopTransferRecommendations() {
 function evaluatePlayerPerformance(player) {
     const { total_points, form, now_cost, minutes } = player;
     // Normalize key metrics
-    const formScore = parseFloat(form) * 10; // Convert string form to number and scale
+    const formScore = parseFloat(form) * 10;
     const valueForMoney = total_points / (now_cost / 10); // Points per million cost
     const playtimeFactor = minutes > 500 ? 1 : 0.5; // Discount if less than 500 mins played
     // Weighted scoring system
     return (total_points * 2 + formScore + valueForMoney * 5) * playtimeFactor;
 }
 function getPotentialReplacements(playerOut, allPlayers, userTeam) {
-    const budgetAvailable = userTeam.transfers.bank + playerOut.now_cost;
+    const budget = userTeam?.bank ?? 0;
+    const budgetAvailable = budget + playerOut.now_cost;
     const positionId = playerOut.element_type;
     const clubCounts = {};
     userTeam.picks.forEach(pick => {

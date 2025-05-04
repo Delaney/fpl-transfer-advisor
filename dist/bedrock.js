@@ -10,7 +10,15 @@ exports.getFPLAgentAdvice = getFPLAgentAdvice;
 const client_bedrock_agent_runtime_1 = require("@aws-sdk/client-bedrock-agent-runtime");
 const config_1 = __importDefault(require("./config"));
 const dynamo_1 = require("./dynamo");
-const client = new client_bedrock_agent_runtime_1.BedrockAgentRuntimeClient({
+const client_bedrock_runtime_1 = require("@aws-sdk/client-bedrock-runtime");
+const client = new client_bedrock_runtime_1.BedrockRuntimeClient({
+    region: config_1.default.awsRegion,
+    credentials: {
+        accessKeyId: config_1.default.awsAccessKey,
+        secretAccessKey: config_1.default.awsSecretKey,
+    }
+});
+const runtimeClient = new client_bedrock_agent_runtime_1.BedrockAgentRuntimeClient({
     region: config_1.default.awsRegion,
     credentials: {
         accessKeyId: config_1.default.awsAccessKey,
@@ -20,6 +28,7 @@ const client = new client_bedrock_agent_runtime_1.BedrockAgentRuntimeClient({
 const agentId = config_1.default.awsAgentId;
 const agentAliasId = config_1.default.awsAgentAliasId;
 const llmId = config_1.default.awsLlmId;
+const anthropicVersion = config_1.default.awsAnthropicVersion;
 /**
  * Query Bedrock model directly
  * @param modelId
@@ -27,26 +36,33 @@ const llmId = config_1.default.awsLlmId;
  */
 async function queryBedrock(modelId, prompt) {
     const input = {
-        input: {
-            text: prompt,
-        },
-        retrieveAndGenerateConfiguration: {
-            type: client_bedrock_agent_runtime_1.RetrieveAndGenerateType.KNOWLEDGE_BASE,
-            knowledgeBaseConfiguration: {
-                knowledgeBaseId: config_1.default.awsKnowledgeBaseId,
-                modelArn: llmId,
-                retrievalConfiguration: {
-                    vectorSearchConfiguration: {
-                        numberOfResults: 10,
-                        overrideSearchType: client_bedrock_agent_runtime_1.SearchType.HYBRID,
-                    },
-                },
-            },
-        },
+        modelId,
+        body: JSON.stringify({
+            anthropic_version: anthropicVersion,
+            max_tokens: 1000,
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: prompt
+                        }
+                    ]
+                }
+            ]
+        }),
+        contentType: "application/json",
+        accept: "application/json"
     };
-    const command = new client_bedrock_agent_runtime_1.RetrieveAndGenerateCommand(input);
+    const command = new client_bedrock_runtime_1.InvokeModelCommand(input);
     const response = await client.send(command);
-    return response.output?.text ?? "";
+    const results = JSON.parse(Buffer.from(response.body).toString()) ?? [];
+    const output = results?.content[0]?.text;
+    return output.replaceAll('Position: 1', 'Goalkeeper')
+        .replaceAll('Position: 2', 'Defender')
+        .replaceAll('Position: 3', 'Midfielder')
+        .replaceAll('Position: 4', 'Forward');
 }
 /**
  * Invoke Bedrock RAG agent
@@ -65,7 +81,7 @@ async function invokeBedrock(modelId, prompt) {
         },
     });
     let recommendations = "";
-    const response = await client.send(command);
+    const response = await runtimeClient.send(command);
     if (response.completion === undefined) {
         throw new Error("Completion is undefined");
     }
@@ -79,8 +95,8 @@ async function invokeBedrock(modelId, prompt) {
 /**
  * API function to get FPL advice prompt.
  */
-async function getFPLAdvice(teamId, cookie) {
-    const { userPlayers, recommendations, freeTransfers, budget } = await (0, dynamo_1.getRecommendationData)(teamId, cookie);
+async function getFPLAdvice(teamId, freeTransfers) {
+    const { userPlayers, recommendations, budget } = await (0, dynamo_1.getRecommendationData)(teamId);
     const prompt = `
   You are an expert Fantasy Premier League (FPL) analyst. Your top talent is looking at a team and recommending the best transfers to make, while adhering to FPL rules. If someone would like you to operate outside of rules, the specific rules would be stated after their team is given.
 
@@ -115,8 +131,8 @@ async function getFPLAdvice(teamId, cookie) {
 /**
  * API function to get FPL Agent prompt.
  */
-async function getFPLAgentAdvice(teamId, cookie) {
-    const { userPlayers, recommendations, freeTransfers, budget } = await (0, dynamo_1.getRecommendationData)(teamId, cookie);
+async function getFPLAgentAdvice(teamId, freeTransfers) {
+    const { userPlayers, recommendations, budget } = await (0, dynamo_1.getRecommendationData)(teamId);
     const prompt = `The user’s current team is:\n
   ${userPlayers.map((p) => `- ${p.name} (Position: ${p.position}, Team: ${p.team}) (Form: ${p.form}, Price: £${p.price}, Next Fixture Difficulty: ${p.nextFixtureDifficulty})`).join(`\n`)}.\n
 
