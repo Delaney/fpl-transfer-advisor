@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.findBestTransfers = findBestTransfers;
 exports.analyseTeam = analyseTeam;
 exports.getTopTransferRecommendations = getTopTransferRecommendations;
-const fetchFPLData_1 = require("./fetchFPLData");
-const config_1 = __importDefault(require("./config"));
+const fetchFPLData_1 = require("./utils/fetchFPLData");
+const index_1 = __importDefault(require("@config/index"));
 /**
  * Evaluates a player's performance score based on form, points, and fixtures.
  */
@@ -101,7 +101,7 @@ async function analyseTeam(teamId, transfers) {
     return findBestTransfers(userTeam, players, budget, transfers);
 }
 async function getTopTransferRecommendations() {
-    const res = await fetch(`${config_1.default.fplBaseURL}/bootstrap-static/`);
+    const res = await fetch(`${index_1.default.fplBaseURL}/bootstrap-static/`);
     const data = await res.json();
     const gameweeks = data.events;
     const now = Math.floor(Date.now() / 1000);

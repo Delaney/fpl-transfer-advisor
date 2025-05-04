@@ -6,8 +6,7 @@ import simpleRoutes from "./routes/simple";
 import bedrockRoutes from "./routes/bedrock";
 import dynamoRoutes from "./routes/dynamo";
 
-import {getUserTeam} from "./fetchFPLData";
-import {simulateLogin} from "./puppeteer";
+import {getUserTeam} from "./utils/fetchFPLData";
 
 const app = express();
 app.use(bodyParser.json());
@@ -21,7 +20,7 @@ app.post('/team', async (req, res, next) => {
     const { teamId } = req.body;
 
     if (!teamId) {
-        res.status(400).json({error: "Team ID or cookie is invalid"});
+        res.status(400).json({error: "Team ID is invalid"});
     }
 
     try {
@@ -29,23 +28,6 @@ app.post('/team', async (req, res, next) => {
         res.json(team);
     } catch (error) {
         next(error);
-    }
-});
-
-app.post("/simulate-login", async (req, res, next) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        res.status(400).json({ error: 'Missing required parameters.' });
-    }
-
-    try {
-        const responses = await simulateLogin(
-            username,
-            password,
-        );
-        res.json({ message: 'Login simulation complete.', responses });
-    } catch (error) {
-        next(error)
     }
 });
 

@@ -1,7 +1,7 @@
 import { DynamoDBClient, PutItemCommand, QueryCommand, BatchGetItemCommand } from "@aws-sdk/client-dynamodb";
-import config from "./config";
-import {Fixture, Main, Player, PLTeam} from "./types";
-import {getUserTeam} from "./fetchFPLData";
+import config from "@config/index";
+import {Fixture, Main, Player, PLTeam} from "types";
+import {getUserTeam} from "../../utils/fetchFPLData";
 
 const dynamo = new DynamoDBClient({
     region: config.awsRegion,

@@ -1,6 +1,6 @@
-import {getFPLData, getUserTeam} from './fetchFPLData';
-import {FPLTeam, Main, Player, TransferSuggestion} from "./types";
-import config from "./config";
+import {getFPLData, getUserTeam} from './utils/fetchFPLData';
+import {FPLTeam, Main, Player, TransferSuggestion} from "types/index";
+import config from "@config/index";
 
 /**
  * Evaluates a player's performance score based on form, points, and fixtures.

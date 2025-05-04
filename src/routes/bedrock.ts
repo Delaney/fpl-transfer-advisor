@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import rateLimit from 'express-rate-limit';
-import {getFPLAdvice} from "../bedrock";
+import {getFPLAdvice} from "@services/aws/bedrock";
 
 const app = express();
 

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import {fetchAndStoreFPLData} from "../dynamo";
+import {fetchAndStoreFPLData} from "@services/aws/dynamo";
 
 const app = express();
 app.use(bodyParser.json());

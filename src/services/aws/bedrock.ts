@@ -5,7 +5,7 @@ import {
     RetrieveAndGenerateType,
     SearchType
 } from "@aws-sdk/client-bedrock-agent-runtime";
-import config from './config';
+import config from '@config/index';
 import {getRecommendationData} from "./dynamo";
 import {BedrockRuntimeClient, InvokeModelCommand} from "@aws-sdk/client-bedrock-runtime";
 
