@@ -62,14 +62,10 @@ npm run start
 ## ⚙️ Usage
 ```ts
 const teamId = '1234567'; // Your FPL team ID
-const cookie = 'cookie-string...'; // Your auth cookie from FPL (see below)
+const transfers = 4; // Number of transfers to recommend
 
-const single = await analyseTeam(teamId, cookie);
-console.log(single);
-// [ { out: 'Harwood-Bellis', in: 'Scarles', cost: 0 } ]
-
-const multiple = await analyseTeam(teamId, cookie, false);
-console.log(result);
+const results = await analyseTeam(teamId, transfers);
+console.log(results);
 // [
 //     { out: 'Harwood-Bellis', in: 'Bednarek', cost: 0 },
 //     { out: 'Davis', in: 'Mazraoui', cost: -1 },
@@ -80,26 +76,23 @@ console.log(result);
 You can also call the AWS Bedrock-powered AI agent to enhance suggestions:
 ```ts
 // Direct LLM query
-const aiRecommendations = await getFPLAdvice(teamId, cookie);
+const aiRecommendations = await getFPLAdvice(teamId, transfers);
 res.json({ aiRecommendations });
 // {
 //     "recommendations": "Out: Mitoma\nIn: Elanga\nCost: -£1.0 Out: Semenyo\nIn: Bruno Fernandes\nCost: £2.9 Out: Palmer\nIn: Bruno Fernandes\nCost: -£2.1 Out: I.Sarr\nIn: Elanga\nCost: -£0.2"
 // }
 
 // Use RAG 
-const agentRecommendations = await getFPLAgentAdvice(teamId, cookie);
+const agentRecommendations = await getFPLAgentAdvice(teamId, transfers);
 res.json({ aiRecommendations });
 ```
 ---
 
-## How to Get Your Team ID and FPL Cookie (Open for Improvement)
+## How to Get Your Team ID
 >This is required to access your actual team data via the FPL /api/my-team/{teamId} endpoint.
 
 - Log in to fantasy.premierleague.com
-- Open DevTools
 - Click on the Points tab<sup>1</sup> on the FPL site, and copy the team ID from the URL<sup>2</sup>
-- On the DevTools, go to the Network tab<sup>3</sup> and search the requests for "me/"<sup>4</sup>
-- Find the header named `cookie` and copy its value<sup>5</sup>
 
 ![Steps to get FPL arguments](./steps.png)
 
