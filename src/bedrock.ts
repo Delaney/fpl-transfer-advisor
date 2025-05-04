@@ -7,8 +7,17 @@ import {
 } from "@aws-sdk/client-bedrock-agent-runtime";
 import config from './config';
 import {getRecommendationData} from "./dynamo";
+import {BedrockRuntimeClient, InvokeModelCommand} from "@aws-sdk/client-bedrock-runtime";
 
-const client = new BedrockAgentRuntimeClient({
+const client = new BedrockRuntimeClient({
+    region: config.awsRegion,
+    credentials: {
+        accessKeyId: config.awsAccessKey,
+        secretAccessKey: config.awsSecretKey,
+    }
+});
+
+const runtimeClient = new BedrockAgentRuntimeClient({
     region: config.awsRegion,
     credentials: {
         accessKeyId: config.awsAccessKey,
@@ -19,6 +28,7 @@ const client = new BedrockAgentRuntimeClient({
 const agentId = config.awsAgentId;
 const agentAliasId = config.awsAgentAliasId;
 const llmId = config.awsLlmId;
+const anthropicVersion = config.awsAnthropicVersion;
 
 /**
  * Query Bedrock model directly
@@ -27,27 +37,36 @@ const llmId = config.awsLlmId;
  */
 export async function queryBedrock(modelId: string, prompt: string) {
     const input = {
-        input: {
-            text: prompt,
-        },
-        retrieveAndGenerateConfiguration: {
-            type: RetrieveAndGenerateType.KNOWLEDGE_BASE,
-            knowledgeBaseConfiguration: {
-                knowledgeBaseId: config.awsKnowledgeBaseId,
-                modelArn: llmId,
-                retrievalConfiguration: {
-                    vectorSearchConfiguration: {
-                        numberOfResults: 10,
-                        overrideSearchType: SearchType.HYBRID,
-                    },
-                },
-            },
-        },
+        modelId,
+        body: JSON.stringify({
+            anthropic_version: anthropicVersion,
+            max_tokens: 1000,
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: prompt
+                        }
+                    ]
+                }
+            ]
+        }),
+        contentType: "application/json",
+        accept: "application/json"
     };
-    const command = new RetrieveAndGenerateCommand(input);
+
+    const command = new InvokeModelCommand(input);
 
     const response = await client.send(command);
-    return response.output?.text ?? "";
+    const results = JSON.parse(Buffer.from(response.body).toString()) ?? [];
+    const output = results?.content[0]?.text;
+
+    return output.replaceAll('Position: 1', 'Goalkeeper')
+        .replaceAll('Position: 2', 'Defender')
+        .replaceAll('Position: 3', 'Midfielder')
+        .replaceAll('Position: 4', 'Forward');
 }
 
 /**
@@ -68,7 +87,7 @@ export async function invokeBedrock(modelId: string, prompt: string) {
     });
 
     let recommendations = "";
-    const response = await client.send(command);
+    const response = await runtimeClient.send(command);
 
     if (response.completion === undefined) {
         throw new Error("Completion is undefined");
@@ -86,8 +105,8 @@ export async function invokeBedrock(modelId: string, prompt: string) {
 /**
  * API function to get FPL advice prompt.
  */
-export async function getFPLAdvice(teamId: number, cookie: string): Promise<string> {
-    const {userPlayers, recommendations, freeTransfers, budget} = await getRecommendationData(teamId, cookie);
+export async function getFPLAdvice(teamId: number, freeTransfers: number): Promise<string> {
+    const {userPlayers, recommendations, budget} = await getRecommendationData(teamId);
 
     const prompt = `
   You are an expert Fantasy Premier League (FPL) analyst. Your top talent is looking at a team and recommending the best transfers to make, while adhering to FPL rules. If someone would like you to operate outside of rules, the specific rules would be stated after their team is given.
@@ -128,8 +147,8 @@ export async function getFPLAdvice(teamId: number, cookie: string): Promise<stri
 /**
  * API function to get FPL Agent prompt.
  */
-export async function getFPLAgentAdvice(teamId: number, cookie: string): Promise<string> {
-    const {userPlayers, recommendations, freeTransfers, budget} = await getRecommendationData(teamId, cookie);
+export async function getFPLAgentAdvice(teamId: number, freeTransfers: number): Promise<string> {
+    const {userPlayers, recommendations, budget} = await getRecommendationData(teamId);
 
     const prompt = `The user’s current team is:\n
   ${userPlayers.map((p) => `- ${p.name} (Position: ${p.position}, Team: ${p.team}) (Form: ${p.form}, Price: £${p.price}, Next Fixture Difficulty: ${p.nextFixtureDifficulty})`).join(`\n`)}.\n

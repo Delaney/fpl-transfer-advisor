@@ -1,4 +1,5 @@
 import {Main, FPLTeam, Player, PLTeam, Position} from './types';
+import config from "./config";
 
 const FPL_BASE_URL = 'https://fantasy.premierleague.com/api';
 
@@ -17,14 +18,21 @@ export async function getFPLData(): Promise<{
     };
 }
 
-export async function getUserTeam(teamId: number, userCookie: string): Promise<FPLTeam> {
+export async function getUserTeam(teamId: number): Promise<FPLTeam> {
     const players = (await getFPLData()).players;
+    const res = await fetch(`${config.fplBaseURL}/bootstrap-static/`);
+    const data = await res.json() as Main;
 
-    const response = await fetch(`${FPL_BASE_URL}/my-team/${teamId}`, {
-        headers: {
-            'cookie': userCookie,
-        }
-    });
+    const now = Math.floor(Date.now() / 1000);
+    const lastGW = data.events
+        .filter(gw => gw.deadline_time_epoch <= now)
+        .sort((a, b) => b.deadline_time_epoch - a.deadline_time_epoch)[0]?.id;
+
+    if (!lastGW) {
+        throw new Error("No upcoming gameweek.");
+    }
+
+    const response = await fetch(`${FPL_BASE_URL}/entry/${teamId}/event/${lastGW}/picks`);
 
     if (!response.ok) {
         throw new Error("Failed to fetch user's FPL team");

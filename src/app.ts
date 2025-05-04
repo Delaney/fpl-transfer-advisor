@@ -18,14 +18,14 @@ app.use('/', dynamoRoutes);
 app.use('/simple-analysis', simpleRoutes);
 
 app.post('/team', async (req, res, next) => {
-    const { teamId, cookie } = req.body;
+    const { teamId } = req.body;
 
-    if (!teamId || !cookie) {
+    if (!teamId) {
         res.status(400).json({error: "Team ID or cookie is invalid"});
     }
 
     try {
-        const team = await getUserTeam(teamId, cookie);
+        const team = await getUserTeam(teamId);
         res.json(team);
     } catch (error) {
         next(error);

@@ -7,30 +7,19 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-app.post('/single', async (req, res, next) => {
-    const { teamId, cookie } = req.body;
+app.post('/', async (req, res, next) => {
+    const { teamId, transfers } = req.body;
 
-    if (!teamId || !cookie) {
-        res.status(400).json({error: "Team ID or cookie is invalid"});
+    if (!teamId) {
+        res.status(400).json({error: "Team ID is invalid"});
+    }
+
+    if (!transfers || isNaN(Number(transfers))) {
+        res.status(400).json({error: "Please enter a valid number of transfers"});
     }
 
     try {
-        const team = await analyseTeam(teamId, cookie);
-        res.json(team);
-    } catch (error) {
-        next(error);
-    }
-});
-
-app.post('/multiple', async (req, res, next) => {
-    const { teamId, cookie } = req.body;
-
-    if (!teamId || !cookie) {
-        res.status(400).json({error: "Team ID or cookie is invalid"});
-    }
-
-    try {
-        const team = await analyseTeam(teamId, cookie, false);
+        const team = await analyseTeam(teamId, transfers);
         res.json(team);
     } catch (error) {
         next(error);

@@ -76,11 +76,10 @@ export async function getTopTransferRecommendations() {
     }));
 }
 
-export async function getRecommendationData(teamId: number, cookie: string) {
+export async function getRecommendationData(teamId: number) {
     const minFormValue = 6.0;
-    const userTeam = await getUserTeam(teamId, cookie);
-    const freeTransfers = userTeam.transfers.limit;
-    const budget = userTeam.transfers.bank / 10;
+    const userTeam = await getUserTeam(teamId);
+    const budget = userTeam?.bank ? userTeam.bank / 10 : 0;
     const playerIds = userTeam.picks.map(player => player.element);
     const positionCodes = [1, 2, 3, 4];
     const recommendations = [];
@@ -134,7 +133,6 @@ export async function getRecommendationData(teamId: number, cookie: string) {
     return {
         userPlayers,
         recommendations,
-        freeTransfers,
         budget,
     }
 }

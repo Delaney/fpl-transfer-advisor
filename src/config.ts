@@ -12,6 +12,7 @@ interface Config {
     awsAgentId: string;
     awsAgentAliasId: string;
     awsLlmId: string;
+    awsAnthropicVersion: string;
 }
 
 const config: Config = {
@@ -24,6 +25,7 @@ const config: Config = {
     awsAgentId: process.env.AWS_AGENT_ID!,
     awsAgentAliasId: process.env.AWS_AGENT_ALIAS_ID!,
     awsLlmId: process.env.AWS_LLM_ID!,
+    awsAnthropicVersion: process.env.AWS_LLM_ANTHROPIC_VERSION!,
 }
 
 export default config;

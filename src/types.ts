@@ -42,6 +42,7 @@ export interface FPLTeam {
         bank: number;
         limit: number;
     };
+    bank?: number;
 }
 
 export interface PLTeam {

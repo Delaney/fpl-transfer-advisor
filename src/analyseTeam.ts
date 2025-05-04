@@ -113,15 +113,12 @@ export async function findBestTransfers(
 /**
  * Main function to analyze a team and return transfer recommendations.
  */
-export async function analyseTeam(teamId: number, cookie: string, single: boolean = true) {
+export async function analyseTeam(teamId: number, transfers: number) {
     const { players, positions } = await getFPLData();
-    const userTeam = await getUserTeam(teamId, cookie);
+    const userTeam = await getUserTeam(teamId);
 
-    const budget = userTeam.transfers.bank / 10;
-    const freeTransfers = userTeam.transfers.limit;
-    return single ?
-        findBestTransfer(userTeam, players, budget) :
-        findBestTransfers(userTeam, players, budget, freeTransfers);
+    const budget = userTeam?.bank ?? 0;
+    return findBestTransfers(userTeam, players, budget, transfers);
 }
 
 export async function getTopTransferRecommendations() {
@@ -162,7 +159,7 @@ function evaluatePlayerPerformance(player: Player): number {
     const { total_points, form, now_cost, minutes } = player;
 
     // Normalize key metrics
-    const formScore = parseFloat(form) * 10; // Convert string form to number and scale
+    const formScore = parseFloat(form) * 10;
     const valueForMoney = total_points / (now_cost / 10); // Points per million cost
     const playtimeFactor = minutes > 500 ? 1 : 0.5; // Discount if less than 500 mins played
 
@@ -171,7 +168,8 @@ function evaluatePlayerPerformance(player: Player): number {
 }
 
 function getPotentialReplacements(playerOut: Player, allPlayers: Player[], userTeam: FPLTeam): Player[] {
-    const budgetAvailable = userTeam.transfers.bank + playerOut.now_cost;
+    const budget = userTeam?.bank ?? 0;
+    const budgetAvailable = budget + playerOut.now_cost;
     const positionId = playerOut.element_type;
 
     const clubCounts: Record<number, number> = {};
